@@ -27,7 +27,6 @@ fn get_urls() -> Vec<String> {
     //     .split(',')
     //     .map(|s| s.trim().to_owned())
     //     .collect::<Vec<String>>()
-    // vec!["https://httpbin.org/ip".to_string()]
     vec![
         "http://localhost:8000/test.json".to_string(),
         "http://localhost:8000/test2.json".to_string(),
