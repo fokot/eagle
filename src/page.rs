@@ -1,11 +1,11 @@
-use crate::VersionInfo;
+#![allow(non_snake_case)]
+use crate::Version;
 use dioxus::prelude::*;
-use std::collections::HashMap;
 
 #[derive(PartialEq, Props)]
 struct EnvProps {
     env: String,
-    result: Result<VersionInfo, String>,
+    result: Version,
 }
 
 // FIXME cloning too much here
@@ -26,7 +26,7 @@ fn Env(cx: Scope<EnvProps>) -> Element {
 
 #[derive(PartialEq, Props)]
 struct BodyProps {
-    envs: HashMap<String, Result<VersionInfo, String>>,
+    envs: Vec<(String, Version)>,
 }
 
 fn Body(cx: Scope<BodyProps>) -> Element {
@@ -40,7 +40,7 @@ fn Body(cx: Scope<BodyProps>) -> Element {
     })
 }
 
-pub fn render(data: HashMap<String, Result<VersionInfo, String>>) -> String {
+pub fn render(data: Vec<(String, Version)>) -> String {
     dioxus_ssr::render_lazy(rsx! {
       Body { envs: data }
     })

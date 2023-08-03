@@ -1,9 +1,7 @@
 use axum::{response::Html, routing::get, Router};
 use serde;
-use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+
 mod page;
 
 #[tokio::main]
@@ -35,46 +33,26 @@ fn get_urls() -> Vec<String> {
     ]
 }
 
-// FIXME zmenit mapu na nieco co drzi poradie
+type Version = Result<VersionInfo, String>;
+
 // call the urls in parallel using tokio and get the data and store it into a map
-async fn get_data(urls: Vec<String>) -> HashMap<String, Result<VersionInfo, String>> {
-    // standard library Mutex would work to
-    let results: Arc<Mutex<HashMap<String, Result<VersionInfo, String>>>> =
-        Arc::new(Mutex::new(HashMap::new()));
-
-    // Create a vector to store the tasks with size of urls
-    let mut tasks = Vec::with_capacity(urls.len());
-
-    // Iterate over the URLs
+async fn get_data(urls: Vec<String>) -> Vec<(String, Version)> {
+    let mut tasks = tokio::task::JoinSet::new();
+    let mut index: usize = 0;
     for url in urls {
-        // Clone the Arc for each task
-        let results_clone = Arc::clone(&results);
-
-        // Spawn a new task
-        let task = tokio::spawn(async move {
-            // Perform the HTTP request or any other operation
-            // and store the result in the HashMap
-            let result = perform_request(&url).await;
-            results_clone.lock().await.insert(url.to_string(), result);
-        });
-
-        // Store the task in the vector
-        tasks.push(task);
+        tasks.spawn(async move { (index, url.clone(), perform_request(&url).await) });
+        index += 1;
     }
-
-    // Wait for all tasks to finish
-    for task in tasks {
-        task.await.unwrap();
+    let mut result = Vec::new();
+    while let Some(res) = tasks.join_next().await {
+        result.push(res.unwrap());
     }
-
-    // // Print the results
-    // for (url, result) in results.lock().await.iter() {
-    //     println!("{}: {}", url, result);
-    // }
-
-    // FIXME preco tu musim let
-    let x = results.lock().await.clone();
-    x
+    // keep the order of the urls
+    result.sort_unstable_by_key(|(index, _, _)| *index);
+    result
+        .iter()
+        .map(|(_, url, version)| (url.clone(), version.clone()))
+        .collect()
 }
 
 // FIXME pridany Clone, mozno sa da zmazat
@@ -84,7 +62,7 @@ pub struct VersionInfo {
     text: String,
 }
 
-async fn perform_request(url: &String) -> Result<VersionInfo, String> {
+async fn perform_request(url: &String) -> Version {
     let response = reqwest::get(url).await.map_err(|e| e.to_string())?;
 
     response
