@@ -19,28 +19,30 @@ async fn main() {
         .unwrap();
 }
 
-fn get_urls() -> Vec<String> {
+type Url = &'static str;
+
+fn get_urls() -> Vec<Url> {
     // let env_var = env::var("VERSION_URLS").expect("No VERSION_URLS environment variable");
     // env_var
     //     .split(',')
     //     .map(|s| s.trim().to_owned())
     //     .collect::<Vec<String>>()
     vec![
-        "http://localhost:8000/test.json".to_string(),
-        "http://localhost:8000/test2.json".to_string(),
-        "http://localhost:8000/test3.json".to_string(),
-        "http://localhost:8765/test4.json".to_string(),
+        "http://localhost:8000/test.json",
+        "http://localhost:8000/test2.json",
+        "http://localhost:8000/test3.json",
+        "http://localhost:8765/test4.json",
     ]
 }
 
 type Version = Result<VersionInfo, String>;
 
 // call the urls in parallel using tokio and get the data and store it into a map
-async fn get_data(urls: Vec<String>) -> Vec<(String, Version)> {
+async fn get_data(urls: Vec<Url>) -> Vec<(Url, Version)> {
     let mut tasks = tokio::task::JoinSet::new();
     let mut index: usize = 0;
     for url in urls {
-        tasks.spawn(async move { (index, url.clone(), perform_request(&url).await) });
+        tasks.spawn(async move { (index, url, perform_request(url).await) });
         index += 1;
     }
     let mut result = Vec::new();
@@ -51,7 +53,7 @@ async fn get_data(urls: Vec<String>) -> Vec<(String, Version)> {
     result.sort_unstable_by_key(|(index, _, _)| *index);
     result
         .iter()
-        .map(|(_, url, version)| (url.clone(), version.clone()))
+        .map(|(_, url, version)| ((*url).clone(), version.clone()))
         .collect()
 }
 
@@ -62,7 +64,7 @@ pub struct VersionInfo {
     text: String,
 }
 
-async fn perform_request(url: &String) -> Version {
+async fn perform_request(url: Url) -> Version {
     let response = reqwest::get(url).await.map_err(|e| e.to_string())?;
 
     response

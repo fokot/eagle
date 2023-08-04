@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
-use crate::Version;
+use crate::{Url, Version};
 use dioxus::prelude::*;
 
 #[derive(PartialEq, Props)]
 struct EnvProps {
-    env: String,
+    env: Url,
     result: Version,
 }
 
@@ -26,7 +26,7 @@ fn Env(cx: Scope<EnvProps>) -> Element {
 
 #[derive(PartialEq, Props)]
 struct BodyProps {
-    envs: Vec<(String, Version)>,
+    envs: Vec<(Url, Version)>,
 }
 
 fn Body(cx: Scope<BodyProps>) -> Element {
@@ -40,7 +40,7 @@ fn Body(cx: Scope<BodyProps>) -> Element {
     })
 }
 
-pub fn render(data: Vec<(String, Version)>) -> String {
+pub fn render(data: Vec<(Url, Version)>) -> String {
     dioxus_ssr::render_lazy(rsx! {
       Body { envs: data }
     })
